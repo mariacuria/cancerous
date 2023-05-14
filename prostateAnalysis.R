@@ -222,19 +222,27 @@ vif(lm.fit)
 #question 3: Make an appropriate LASSO model with the appropriate link and error function, 
 #and evaluate the prediction performance. Do you see any evidence that over-learning is an issue? 
 
+
 x = model.matrix(Cscore~.,prostate)[,-1]
 y = prostate$Cscore
 
-lasso.mod =glmnet(x[train ,],y[train],alpha =1, lambda =grid)
+
+train=sample(1:nrow(x), nrow(x)/2)
+library(glmnet)
+grid = 10^seq(10,-2,length=100) 
+lasso.mod =glmnet(x[train ,],y[train],alpha =1, lambda=grid)
 plot(lasso.mod)
 
 set.seed (1)
 cv.out =cv.glmnet (x[train ,],y[train],alpha =1)
 plot(cv.out)
-cv.out$lambda.min
 bestlam =cv.out$lambda.min
+
 lasso.pred=predict (lasso.mod ,s=bestlam ,newx=x[test ,])
 mean(( lasso.pred -y.test)^2)
+
+
+
 
 
 

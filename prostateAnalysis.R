@@ -172,8 +172,10 @@ val.errors
 which.min(val.errors)
 
 
+#question 3: Make an appropriate LASSO model with the appropriate link and error function, 
+#and evaluate the prediction performance. Do you see any evidence that over-learning is an issue? 
 
-
+x = model.matrix(Salary)
 
 
 

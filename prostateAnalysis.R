@@ -111,9 +111,16 @@ boxplot(prostateNumeric)
 # Identify the outliers based on the boxplot
 outliers <- boxplot(prostateNumeric)$out
 # Remove the outliers from the data frame
-cleaned_prostate <- prostateNumeric[!(prostateNumeric$age %in% outliers), ]
-cleaned_prostate <- cleaned_prostate[!(cleaned_prostate$Cscore %in% outliers), ]
-boxplot(cleaned_prostate)
+prostateCleanAge <- prostateNumeric[!(prostateNumeric$age %in% outliers), ]
+boxplot(prostateCleanAge)
+prostateCleanCscore <- prostateNumeric[!(prostateNumeric$Cscore %in% outliers), ]
+boxplot(prostateCleanCscore)
+prostateCleanLpsa <- prostateNumeric[!(prostateNumeric$lpsa %in% outliers), ]
+boxplot(prostateCleanLpsa)
+cleanProstate <- prostateNumeric[!(c(prostateNumeric$age, prostateNumeric$Cscore, prostateNumeric$lpsa) %in% outliers), ]
+boxplot(cleanProstate)
+
+
 
 #Best Subset Selection
 #The regsubsets() function (part of the leaps library) performs best subset selection by identifying the
@@ -159,6 +166,113 @@ coef(regfit.full,2)
 #the test error whereas we are more interested in the test error.
 #Let's use cross-validation (page 213 of the book) which provides a direct estimate of the test error.
 
+#Best Subset Selection with only numeric variables (no svi)
+regfit.full.numeric = regsubsets(Cscore~., prostateNumeric)
+summary(regfit.full.numeric)
+regfit.full.numeric = regsubsets(Cscore~., data = prostateNumeric)
+reg.summary.numeric = summary(regfit.full.numeric) #returns R2, RSS, adjusted R2, Cp, and BIC
+names(reg.summary.numeric)
+reg.summary.numeric$rsq
+par(mfrow=c(2,2))
+plot(reg.summary.numeric$rss, xlab="Number of Variables", ylab="RSS", type="l")
+points(4, reg.summary.numeric$rss[4], col="red", cex=2, pch=20)
+plot(reg.summary.numeric$adjr2, xlab="Number of Variables", ylab="Adjusted RSq", type="l")
+#What is the model with the largest adjusted R2 statistic?
+which.max(reg.summary.numeric$adjr2)
+points(4, reg.summary.numeric$adjr2[4], col="red", cex=2, pch=20)
+#plot the Cp and BIC statistics, and indicate the models with the smallest statistic using which.min()
+plot(reg.summary.numeric$cp, xlab="Number of Variables", ylab="Cp", type='l')
+which.min(reg.summary.numeric$cp)
+points(4, reg.summary.numeric$cp[4], col="red", cex=2, pch=20)
+plot(reg.summary.numeric$bic, xlab="Number of Variables", ylab="BIC", type='l')
+which.min(reg.summary.numeric$bic)
+points(2, reg.summary.numeric$bic[2], col="red", cex=2, pch=20)
+
+#Best Subset Selection with only numeric variables (no svi), no age outliers
+regfit.full.ageout = regsubsets(Cscore~., prostateCleanAge)
+summary(regfit.full.ageout)
+regfit.full.ageout = regsubsets(Cscore~., data = prostateCleanAge)
+reg.summary.ageout = summary(regfit.full.ageout) #returns R2, RSS, adjusted R2, Cp, and BIC
+reg.summary.ageout$rsq
+par(mfrow=c(2,2))
+plot(reg.summary.ageout$rss, xlab="Number of Variables", ylab="RSS", type="l")
+points(4, reg.summary.ageout$rss[4], col="red", cex=2, pch=20)
+plot(reg.summary.ageout$adjr2, xlab="Number of Variables", ylab="Adjusted RSq", type="l")
+#What is the model with the largest adjusted R2 statistic?
+which.max(reg.summary.ageout$adjr2)
+points(4, reg.summary.ageout$adjr2[4], col="red", cex=2, pch=20)
+#plot the Cp and BIC statistics, and indicate the models with the smallest statistic using which.min()
+plot(reg.summary.ageout$cp, xlab="Number of Variables", ylab="Cp", type='l')
+which.min(reg.summary.ageout$cp)
+points(4, reg.summary.ageout$cp[4], col="red", cex=2, pch=20)
+plot(reg.summary.ageout$bic, xlab="Number of Variables", ylab="BIC", type='l')
+which.min(reg.summary.ageout$bic)
+points(2, reg.summary.ageout$bic[2], col="red", cex=2, pch=20)
+
+#Best Subset Selection with only numeric variables (no svi), no Cscore outliers
+regfit.full.cscoreout = regsubsets(Cscore~., prostateCleanCscore)
+summary(regfit.full.cscoreout)
+regfit.full.cscoreout = regsubsets(Cscore~., data = prostateCleanCscore)
+reg.summary.cscoreout = summary(regfit.full.cscoreout) #returns R2, RSS, adjusted R2, Cp, and BIC
+reg.summary.cscoreout$rsq
+par(mfrow=c(2,2))
+plot(reg.summary.cscoreout$rss, xlab="Number of Variables", ylab="RSS", type="l")
+points(4, reg.summary.cscoreout$rss[4], col="red", cex=2, pch=20)
+plot(reg.summary.cscoreout$adjr2, xlab="Number of Variables", ylab="Adjusted RSq", type="l")
+#What is the model with the largest adjusted R2 statistic?
+which.max(reg.summary.cscoreout$adjr2)
+points(5, reg.summary.cscoreout$adjr2[5], col="red", cex=2, pch=20)
+#plot the Cp and BIC statistics, and indicate the models with the smallest statistic using which.min()
+plot(reg.summary.cscoreout$cp, xlab="Number of Variables", ylab="Cp", type='l')
+which.min(reg.summary.cscoreout$cp)
+points(2, reg.summary.cscoreout$cp[2], col="red", cex=2, pch=20)
+plot(reg.summary.cscoreout$bic, xlab="Number of Variables", ylab="BIC", type='l')
+which.min(reg.summary.cscoreout$bic)
+points(2, reg.summary.cscoreout$bic[2], col="red", cex=2, pch=20)
+
+#Best Subset Selection with only numeric variables (no svi), no lpsa outliers
+regfit.full.lpsaout = regsubsets(Cscore~., prostateCleanLpsa)
+summary(regfit.full.lpsaout)
+regfit.full.lpsaout = regsubsets(Cscore~., data = prostateCleanLpsa)
+reg.summary.lpsaout = summary(regfit.full.lpsaout) #returns R2, RSS, adjusted R2, Cp, and BIC
+reg.summary.lpsaout$rsq
+par(mfrow=c(2,2))
+plot(reg.summary.lpsaout$rss, xlab="Number of Variables", ylab="RSS", type="l")
+points(4, reg.summary.lpsaout$rss[4], col="red", cex=2, pch=20)
+plot(reg.summary.lpsaout$adjr2, xlab="Number of Variables", ylab="Adjusted RSq", type="l")
+#What is the model with the largest adjusted R2 statistic?
+which.max(reg.summary.lpsaout$adjr2)
+points(4, reg.summary.lpsaout$adjr2[4], col="red", cex=2, pch=20)
+#plot the Cp and BIC statistics, and indicate the models with the smallest statistic using which.min()
+plot(reg.summary.lpsaout$cp, xlab="Number of Variables", ylab="Cp", type='l')
+which.min(reg.summary.lpsaout$cp)
+points(4, reg.summary.lpsaout$cp[4], col="red", cex=2, pch=20)
+plot(reg.summary.lpsaout$bic, xlab="Number of Variables", ylab="BIC", type='l')
+which.min(reg.summary.lpsaout$bic)
+points(2, reg.summary.lpsaout$bic[2], col="red", cex=2, pch=20)
+
+#Best Subset Selection with only numeric variables (no svi), excluding age, Cscore and lpsa outliers
+regfit.full.clean = regsubsets(Cscore~., cleanProstate)
+summary(regfit.full.clean)
+regfit.full.clean = regsubsets(Cscore~., data = cleanProstate)
+reg.summary.clean = summary(regfit.full.clean) #returns R2, RSS, adjusted R2, Cp, and BIC
+names(reg.summary.clean)
+reg.summary.clean$rsq
+par(mfrow=c(2,2))
+plot(reg.summary.clean$rss, xlab="Number of Variables", ylab="RSS", type="l")
+points(4, reg.summary.clean$rss[4], col="red", cex=2, pch=20)
+plot(reg.summary.clean$adjr2, xlab="Number of Variables", ylab="Adjusted RSq", type="l")
+#What is the model with the largest adjusted R2 statistic?
+which.max(reg.summary.clean$adjr2)
+points(4, reg.summary.clean$adjr2[4], col="red", cex=2, pch=20)
+#plot the Cp and BIC statistics, and indicate the models with the smallest statistic using which.min()
+plot(reg.summary.clean$cp, xlab="Number of Variables", ylab="Cp", type='l')
+which.min(reg.summary.clean$cp)
+points(4, reg.summary.clean$cp[4], col="red", cex=2, pch=20)
+plot(reg.summary.clean$bic, xlab="Number of Variables", ylab="BIC", type='l')
+which.min(reg.summary.clean$bic)
+points(2, reg.summary.clean$bic[2], col="red", cex=2, pch=20)
+
 ### Choosing Among Models Using Cross-Validation ###
 
 #split the observations into a training set and a test set
@@ -166,7 +280,7 @@ set.seed(1)
 train = sample(c(TRUE,FALSE), nrow(prostate), rep=TRUE)
 test = (!train)
 #apply regsubsets() to the training set in order to perform best subset selection
-regfit.best = regsubsets(Cscore~.,data=prostate[train,])
+regfit.best = regsubsets(Cscore~., data = prostate[train,])
 #compute the validation set error for the best model of each model size
 #1) make a model matrix from the test data
 test.mat = model.matrix(Cscore~., data = prostate[test,]) #build an “X” matrix from data
@@ -179,7 +293,7 @@ for(i in 1:7) {
   pred = test.mat[,names(coefi)]%*%coefi
   val.errors[i] = mean((prostate$Cscore[test]-pred)^2)
 }
-#the best model is the one that contains ___ variables.
+#the best model is the one that contains 1 variable.
 val.errors
 which.min(val.errors)
 
@@ -210,12 +324,26 @@ cv.error.10
 
 
 ### Multiple Linear Regression ###
-lm.fit=lm(Cscore ~ lcavol + lweight + age + lbph + svi, data = prostate)
 lm.fit=lm(Cscore ~ ., data = prostate)
-summary(lm.fit)
+summary(lm.fit) #lpsa very significant
+lm.fit.numeric = lm(Cscore ~ ., data = prostateNumeric)
+summary(lm.fit.numeric) #lcavol somewhat significant, lcp significant, lpsa very significant
+lm.fit.ageout = lm(Cscore ~ ., data = prostateCleanAge)
+summary(lm.fit.ageout) #lcavol somewhat significant, lcp significant, lpsa very significant
+lm.fit.cscoreout = lm(Cscore ~ ., data = prostateCleanCscore)
+summary(lm.fit.cscoreout) #lcp and lpsa very significant
+lm.fit.lpsaout = lm(Cscore ~ ., data = prostateCleanLpsa)
+summary(lm.fit.lpsaout) #lcp and lpsa very significant
+lm.fit.clean = lm(Cscore ~ ., data = cleanProstate)
+summary(lm.fit.clean) #lcavol somewhat significant, lcp significant, lpsa very significant
 #compute variance inflation factors
 library(car)
 vif(lm.fit)
+vif(lm.fit.numeric)
+vif(lm.fit.ageout)
+vif(lm.fit.cscoreout)
+vif(lm.fit.lpsaout)
+vif(lm.fit.clean)
 
 
 

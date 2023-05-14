@@ -9,6 +9,7 @@ library("stats")
 #library("raster")
 library("XLConnect")
 
+library("ggplot2")
 library(reshape2)
 library(corrplot)
 library(leaps)
@@ -17,7 +18,6 @@ library(leaps)
 library(glmnet)
 library(tidyverse)
 library(boot)
-library(corrplot)
 library(onewaytests)
 require(methods)
 library(pROC)
@@ -40,6 +40,8 @@ head(prostate)
 #Overview
 dim(prostate)
 summary(prostate)
+#make a subset of the data w/ only quantitative values
+prostateNumeric <- subset(prostate, select = -c(svi))
 #Descriptive statistics
 descrip.prostate<-stat.desc(prostate[,names(prostate)],basic=TRUE, desc=TRUE)
 descrip.prostate
@@ -103,6 +105,16 @@ summary(prostate[,"Cscore"])
 
 #############Question 2###############
 
+# Create boxplots for all variables in your data frame
+par(mfrow=c(1,1))
+boxplot(prostateNumeric)
+# Identify the outliers based on the boxplot
+outliers <- boxplot(prostateNumeric)$out
+# Remove the outliers from the data frame
+cleaned_prostate <- prostateNumeric[!(prostateNumeric$age %in% outliers), ]
+cleaned_prostate <- cleaned_prostate[!(cleaned_prostate$Cscore %in% outliers), ]
+boxplot(cleaned_prostate)
+
 #Best Subset Selection
 #The regsubsets() function (part of the leaps library) performs best subset selection by identifying the
 #best model that contains a given number of predictors, where best is quantified using RSS. The summary()
@@ -120,17 +132,17 @@ reg.summary$rsq
 #Plotting RSS, adjusted R2, Cp, and BIC for all of the models at once will help us decide which model to
 #select.
 par(mfrow=c(2,2))
-plot(reg.summary$rss ,xlab="Number of Variables ",ylab="RSS", type="l")
-plot(reg.summary$adjr2 ,xlab="Number of Variables ", ylab="Adjusted RSq",type="l")
+plot(reg.summary$rss ,xlab="Number of Variables",ylab="RSS", type="l")
+plot(reg.summary$adjr2 ,xlab="Number of Variables", ylab="Adjusted RSq",type="l")
 #What is the model with the largest adjusted R2 statistic?
 which.max(reg.summary$adjr2)
 points(5,reg.summary$adjr2[5], col="red",cex=2,pch=20)
 #plot the Cp and BIC statistics, and indicate the models with the smallest statistic using which.min()
-plot(reg.summary$cp, xlab="Number of Variables ", ylab="Cp", type='l')
+plot(reg.summary$cp, xlab="Number of Variables", ylab="Cp", type='l')
 which.min(reg.summary$cp)
 points(5,reg.summary$cp [5],col="red",cex=2,pch=20)
 which.min(reg.summary$bic)
-plot(reg.summary$bic ,xlab="Number of Variables ",ylab="BIC", type='l')
+plot(reg.summary$bic,xlab="Number of Variables",ylab="BIC", type='l')
 points(2,reg.summary$bic [2],col="red",cex=2,pch=20)
 #display the selected variables for the best model with a given number of predictors, ranked according to
 #the BIC, Cp, adjusted R2, or AIC
@@ -170,6 +182,41 @@ for(i in 1:7) {
 #the best model is the one that contains ___ variables.
 val.errors
 which.min(val.errors)
+
+#LOOCV
+library(boot)
+glm.fit=glm(Cscore ~ ., data = prostate)
+cv.err = cv.glm(prostate, glm.fit)
+cv.err$delta
+cv.error = rep(0,5)
+for (i in 1:5) {
+  glm.fit = glm(Cscore ~ poly(,i), data = prostate)
+  cv.error[i] = cv.glm(prostate, glm.fit)$delta[1]
+}
+cv.error
+#1481.7016  777.7890  803.7298  891.4756 1008.7859
+#sharp drop in the estimated test MSE between the linear and quadratic fits, but then no clear
+#improvement from using higher-order polynomials
+
+#k-Fold Cross-Validation with k = 10
+set.seed(17)
+cv.error.10 = rep(0,10)
+for (i in 1:10){
+  glm.fit = glm(Cscore ~ poly(lpsa,i), data = prostate)
+  cv.error.10[i] = cv.glm(prostate, glm.fit, K = 10)$delta[1]
+}
+cv.error.10
+#1529.8534   769.2539   795.8788   893.9604  1021.9147  1257.1746  1613.5471  2925.3239 24967.8074 71946.0660
+
+
+### Multiple Linear Regression ###
+lm.fit=lm(Cscore ~ lcavol + lweight + age + lbph + svi, data = prostate)
+lm.fit=lm(Cscore ~ ., data = prostate)
+summary(lm.fit)
+#compute variance inflation factors
+library(car)
+vif(lm.fit)
+
 
 
 #question 3: Make an appropriate LASSO model with the appropriate link and error function, 

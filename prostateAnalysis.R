@@ -73,6 +73,18 @@ ggplot(data = melt(cormat), aes(x=Var1, y=Var2, fill=value)) +
                        midpoint = 0, limit = c(-1,1), space = "Lab", 
                        name="Pearson\nCorrelation")+ geom_tile()
 
+#scatterplot: 
+x <- prostate[, 2:8]  # X values
+x <- prostate[, 2:9]
+y <- prostate[, 1]
+  # Y values
+y
+head(x)
+# Create scatterplot
+plot(x, y, main = "Scatterplot of Prostate Data",
+     xlab("Predictor Variables"), ylab("Response Variable"))
+
+
 # The boxplot for Cscore indicates a high variability of cancer progression between patients.
 # There are many high outliers in Cscore (patients who have a higher progression of cancer).
 # The median is positioned lower than the middle of the box, suggesting that the distribution is skewed to the left
@@ -347,7 +359,9 @@ vif(lm.fit.clean)
 
 
 
-#question 3: Make an appropriate LASSO model with the appropriate link and error function, 
+############question 3################### 
+
+#Make an appropriate LASSO model with the appropriate link and error function, 
 #and evaluate the prediction performance. Do you see any evidence that over-learning is an issue? 
 
 
@@ -356,20 +370,25 @@ y = prostate$Cscore
 
 
 train=sample(1:nrow(x), nrow(x)/2)
+test =(-train)
+y.test = y[test]
 library(glmnet)
 grid = 10^seq(10,-2,length=100) 
+
 lasso.mod =glmnet(x[train ,],y[train],alpha =1, lambda=grid)
 plot(lasso.mod)
 
 set.seed (1)
-cv.out =cv.glmnet (x[train ,],y[train],alpha =1)
+cv.out =cv.glmnet (x[train ,],y[train],alpha =1) #10-fold cross validation
 plot(cv.out)
 bestlam =cv.out$lambda.min
-
+bestlam
 lasso.pred=predict (lasso.mod ,s=bestlam ,newx=x[test ,])
 mean(( lasso.pred -y.test)^2)
 
-
+out=glmnet (x,y,alpha =1, lambda =grid)
+lasso.coef=predict(out ,type = "coefficients",s=bestlam )[1:8 ,]
+lasso.coef
 
 
 

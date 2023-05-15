@@ -2,6 +2,7 @@
 #Soniya LAMA   r0715145
 #Statistical Methods for Bioinformatics
 
+#load packages
 library("Hmisc")
 library("pastecs")
 library("doBy")
@@ -14,7 +15,6 @@ library(reshape2)
 library(corrplot)
 library(leaps)
 
-#load packages
 library(glmnet)
 library(tidyverse)
 library(boot)
@@ -36,7 +36,7 @@ head(prostate)
 
 #1. Study and describe the predictor variables. Do you see any issues that are relevant for making predictions? 
 
-#############Question 1###############
+############# Question 1 ###############
 #Overview
 dim(prostate)
 summary(prostate)
@@ -54,16 +54,17 @@ covar.prostate
 #Box plots for each variable
 par(mfrow = c(1, 2))
 boxplot(prostate$Cscore,main="Cscore",ylab="Cscore", col = "gray")
-#boxplot(prostate$lcavol,main="lcavol",ylab="lcavol", col = "gray")
-#par(mfrow = c(1, 2))
-#boxplot(prostate$lweight,main="lweight",ylab="lweight", col = "gray")
+boxplot(prostate$lcavol,main="lcavol",ylab="lcavol", col = "gray")
+
+boxplot(prostate$lweight,main="lweight",ylab="lweight", col = "gray")
 boxplot(prostate$age,main="age",ylab="age", col = "gray")
-par(mfrow = c(1, 2))
+
 boxplot(prostate$lbph,main="lbph",ylab="lbph", col = "gray")
 boxplot(prostate$lcp,main="lcp",ylab="lcp", col = "gray")
-par(mfrow = c(1, 2))
+
 boxplot(prostate$lpsa,main="lpsa",ylab="lpsa", col = "gray")
 boxplot(prostate$svi,main="svi",ylab="svi", col = "gray")
+
 # Calculate the correlation matrix
 cormat = cor(prostate)
 cormat
@@ -72,18 +73,6 @@ ggplot(data = melt(cormat), aes(x=Var1, y=Var2, fill=value)) +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
                        midpoint = 0, limit = c(-1,1), space = "Lab", 
                        name="Pearson\nCorrelation")+ geom_tile()
-
-#scatterplot: 
-x <- prostate[, 2:8]  # X values
-x <- prostate[, 2:9]
-y <- prostate[, 1]
-  # Y values
-y
-head(x)
-# Create scatterplot
-plot(x, y, main = "Scatterplot of Prostate Data",
-     xlab("Predictor Variables"), ylab("Response Variable"))
-
 
 # The boxplot for Cscore indicates a high variability of cancer progression between patients.
 # There are many high outliers in Cscore (patients who have a higher progression of cancer).
@@ -143,8 +132,6 @@ boxplot(cleanProstate)
 #The regsubsets() function (part of the leaps library) performs best subset selection by identifying the
 #best model that contains a given number of predictors, where best is quantified using RSS. The summary()
 #command outputs the best set of variables for each model size.
-regfit.full = regsubsets(Cscore~., prostate)
-summary(regfit.full)
 regfit.full = regsubsets(Cscore~., data = prostate)
 reg.summary = summary(regfit.full) #returns R2, RSS, adjusted R2, Cp, and BIC
 names(reg.summary)
@@ -316,12 +303,12 @@ which.min(val.errors)
 
 #LOOCV
 library(boot)
-glm.fit=glm(Cscore ~ ., data = prostate)
+glm.fit = glm(Cscore ~ ., data = prostate)
 cv.err = cv.glm(prostate, glm.fit)
 cv.err$delta
 cv.error = rep(0,5)
 for (i in 1:5) {
-  glm.fit = glm(Cscore ~ poly(,i), data = prostate)
+  glm.fit = glm(Cscore ~ poly(lpsa,i), data = prostate)
   cv.error[i] = cv.glm(prostate, glm.fit)$delta[1]
 }
 cv.error

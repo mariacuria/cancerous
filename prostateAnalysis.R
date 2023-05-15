@@ -115,7 +115,7 @@ summary(prostate[,"Cscore"])
 # assumptions underlying inferences with the model are violated? Evaluate the effect of any influential
 # point, or outlier.
 
-#############Question 2###############
+################### question 2 ################### 
 
 # Create boxplots for all variables in your data frame
 par(mfrow=c(1,1))
@@ -460,7 +460,10 @@ rmse
 #the prediction of Cscore, and their relationship seems to be non-linear.
 
 
-
+################### question 5 ###################
+#Fit your best model with appropriate non-linear effects. Report a comparison of performance
+#to LASSO and your model reported under question 2. Explain what you find, and indicate
+#relevant issues or limitations of your analysis.
 
 
 

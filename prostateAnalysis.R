@@ -122,13 +122,18 @@ par(mfrow=c(1,1))
 boxplot(prostateNumeric)
 # Identify the outliers based on the boxplot
 outliers <- boxplot(prostateNumeric)$out
+outliersSvi <- boxplot(prostate)$out
 # Remove the outliers from the data frame
+prostateCleanAgeSvi <- prostate[!(prostate$age %in% outliers), ]
 prostateCleanAge <- prostateNumeric[!(prostateNumeric$age %in% outliers), ]
 boxplot(prostateCleanAge)
+prostateCleanCscoreSvi <- prostate[!(prostate$Cscore %in% outliers), ]
 prostateCleanCscore <- prostateNumeric[!(prostateNumeric$Cscore %in% outliers), ]
 boxplot(prostateCleanCscore)
+prostateCleanLpsaSvi <- prostate[!(prostate$lpsa %in% outliers), ]
 prostateCleanLpsa <- prostateNumeric[!(prostateNumeric$lpsa %in% outliers), ]
 boxplot(prostateCleanLpsa)
+cleanProstateSvi <- prostate[!(c(prostate$age, prostate$Cscore, prostate$lpsa) %in% outliers), ]
 cleanProstate <- prostateNumeric[!(c(prostateNumeric$age, prostateNumeric$Cscore, prostateNumeric$lpsa) %in% outliers), ]
 boxplot(cleanProstate)
 
@@ -335,19 +340,27 @@ cv.error.10
 #1529.8534   769.2539   795.8788   893.9604  1021.9147  1257.1746  1613.5471  2925.3239 24967.8074 71946.0660
 
 
-### Multiple Linear Regression ###
+#### Multiple Linear Regression ####
 lm.fit=lm(Cscore ~ ., data = prostate)
 summary(lm.fit) #lpsa very significant
 lm.fit.numeric = lm(Cscore ~ ., data = prostateNumeric)
 summary(lm.fit.numeric) #lcavol somewhat significant, lcp significant, lpsa very significant
 lm.fit.ageout = lm(Cscore ~ ., data = prostateCleanAge)
 summary(lm.fit.ageout) #lcavol somewhat significant, lcp significant, lpsa very significant
+lm.fit.ageout.svi = lm(Cscore ~ ., data = prostateCleanAgeSvi)
+summary(lm.fit.ageout.svi) #lcavol somewhat significant, lcp significant, lpsa very significant
 lm.fit.cscoreout = lm(Cscore ~ ., data = prostateCleanCscore)
 summary(lm.fit.cscoreout) #lcp and lpsa very significant
+lm.fit.cscoreout.svi = lm(Cscore ~ ., data = prostateCleanCscoreSvi)
+summary(lm.fit.cscoreout.svi) #lcp somewhat significant, lpsa very significant
 lm.fit.lpsaout = lm(Cscore ~ ., data = prostateCleanLpsa)
 summary(lm.fit.lpsaout) #lcp and lpsa very significant
+lm.fit.lpsaout.svi = lm(Cscore ~ ., data = prostateCleanLpsaSvi)
+summary(lm.fit.lpsaout.svi) #lcp significant, lpsa very significant
 lm.fit.clean = lm(Cscore ~ ., data = cleanProstate)
 summary(lm.fit.clean) #lcavol somewhat significant, lcp significant, lpsa very significant
+lm.fit.clean.svi = lm(Cscore ~ ., data = cleanProstateSvi)
+summary(lm.fit.clean.svi) #lcavol somewhat significant, lcp significant, lpsa very significant
 #compute variance inflation factors
 library(car)
 vif(lm.fit)
@@ -359,7 +372,7 @@ vif(lm.fit.clean)
 
 
 
-############question 3################### 
+################### question 3 ################### 
 
 #Make an appropriate LASSO model with the appropriate link and error function, 
 #and evaluate the prediction performance. Do you see any evidence that over-learning is an issue? 
@@ -392,13 +405,66 @@ lasso.coef
 
 
 
+################### question 4 ###################
+#Look at the coefficient for “lcavol” in your LASSO model. Does this coefficient correspond
+#to how well it can predict Cscore? Explain your observation. 
+
+#LASSO shrinks the coefficient estimate for "lcavol" to zero. Hence, "lcavol" is not part
+#of the variable selection by LASSO. Let's determine if it corresponds to how well lcavol
+#predicts the Cscore.
+
+#1. Visualize the relationship between lcavol and Cscore
+#plot the data: scatter plot of lcavol (predictor var) against Cscore (response var)
+plot(prostate$lcavol, prostate$Cscore, xlab="Log cancer volume", ylab="Cscore", pch=16, cex=1.5, main="Cancer volume and cancer progression")
+abline(lm(prostate$Cscore ~ prostate$lcavol), lwd=2, col="red")
+lines(lowess(prostate$lcavol, prostate$Cscore, f=0.9), lwd=2, col="blue")
+abline(lm(prostate$Cscore ~ prostate$lcavol + log(prostate$lcavol)), lwd=2, col="blue")
+#The relationship does not seem to be linear. However, there seems to be some sort of an
+#exponential relationship. This suggests that the predictor variable may be a good predictor
+#of the response variable, just not in the linear model.
+
+#2. Calculate the correlation coefficient between lcavol and Cscore
+cov.lcavol.cscore <- cov(prostate$lcavol, prostate$Cscore)
+cov.lcavol.cscore
+corr.lcavol.cscore <- cor(prostate$lcavol, prostate$Cscore)
+corr.lcavol.cscore #0.511
+#The correlation coefficient between lcavol and Cscore is around 0.51 - not a strong indicator
+#of a linear relationship.
+
+#3. Build a regression model
+#See section "Multiple Linear Regression". "lcavol" has been shown to be somewhat
+#significant (0.024 < p-value < 0.043 numeric) in some of the models excluding some
+#outliers, in others not significant at all.
+res <- lm(Cscore ~ lcavol, data = prostate)
+prostate.anova <- anova(res)
+prostate.anova
+prostate.summary <- summary(res)
+prostate.summary
+plot(prostate$lcavol, prostate$Cscore, xlab="Cancer volume", ylab="Cscore", main="Cscore vs cancer volume")
+abline(res, col ="blue", lwd=2)
+#lcavol alone seems to be a significant predictor of the Cscore, and the relationship seems
+#to be linear. However, this regression model does not perform well for this data. The
+#adjusted R-squared statistic is not very high - around 0.25.
+#calculate mean squared error
+mse <- mean(res$residuals^2)
+rmse <- sqrt(mse)
+range(prostate$Cscore)
+median(prostate$Cscore)
+rmse
+#The root mean squared error is rather high, around 45 - higher than the median and the
+#mean Cscores.
+#This information combined indicates that the present model is not well-fitted for our data.
+
+#In conclusion, the coefficient for lcavol estimated by LASSO does not entirely correspond
+#to how well this variable can predict Cscore. This predictor has some significance for
+#the prediction of Cscore, and their relationship seems to be non-linear.
 
 
 
 
 
 
-x#2022
+#2022
 
 train = sample(1:nrow(prostate), nrow(prostate)*2/3)
 train
@@ -554,12 +620,6 @@ anova( glm.mod,smooth.gam, natural.gam, test = "Chisq")
 
 
 
-
-
-#2023
-
-#3. Make an appropriate LASSO model, with the appropriate link and error function, and evaluate the
-#   prediction performance. Do you see evidence that over-learning is an issue?
 
 
 

@@ -365,10 +365,15 @@ vif(lm.fit.clean)
 #and evaluate the prediction performance. Do you see any evidence that over-learning is an issue? 
 
 
-x = model.matrix(Cscore~.,prostate)[,-1]
-y = prostate$Cscore
+############question 3################### 
 
+#Make an appropriate LASSO model with the appropriate link and error function, 
+#and evaluate the prediction performance. Do you see any evidence that over-learning is an issue? 
 
+x = model.matrix(Cscore~.,prostateNumeric)[,-1]
+y = prostateNumeric$Cscore
+
+set.seed(1)
 train=sample(1:nrow(x), nrow(x)/2)
 test =(-train)
 y.test = y[test]
@@ -376,19 +381,25 @@ library(glmnet)
 grid = 10^seq(10,-2,length=100) 
 
 lasso.mod =glmnet(x[train ,],y[train],alpha =1, lambda=grid)
-plot(lasso.mod)
+plot(lasso.mod, label = TRUE)
 
-set.seed (1)
-cv.out =cv.glmnet (x[train ,],y[train],alpha =1) #10-fold cross validation
+set.seed (2)
+cv.out = cv.glmnet (x[train ,],y[train],alpha =1) #10-fold cross validation
 plot(cv.out)
-bestlam =cv.out$lambda.min
+bestlam =cv.out$lambda.min 
 bestlam
+#[1] 1.552688
 lasso.pred=predict (lasso.mod ,s=bestlam ,newx=x[test ,])
 mean(( lasso.pred -y.test)^2)
+#[1] 709.4205
 
 out=glmnet (x,y,alpha =1, lambda =grid)
-lasso.coef=predict(out ,type = "coefficients",s=bestlam )[1:8 ,]
+lasso.coef=predict(out ,type = "coefficients",s=bestlam )[1:7 ,]
 lasso.coef
+#(Intercept)      lcavol     lweight         age        lbph         svi         lcp        lpsa 
+#-8.320718   -2.369483   -6.331806    0.000000    0.000000   18.835766    4.882504   27.274831 
+
+
 
 
 
@@ -451,6 +462,17 @@ rmse
 #Fit your best model with appropriate non-linear effects. Report a comparison of performance
 #to LASSO and your model reported under question 2. Explain what you find, and indicate
 #relevant issues or limitations of your analysis.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -544,7 +566,7 @@ plot(y=prostate[,'caroBlood'], x=prostate[,'alcohol'], ylab = "caroBlood",
     xlab = "alcohol")
 abline(caroAlc.glm, col = 2)
 
-#now we can try with with bootstrapping since
+#now we can try with  bootstrapping since
 #the alcohol variable does not follow a normal distribution
 
 ####create a boot function for a linear model
@@ -579,7 +601,7 @@ boot.mod.quad
 summary(caroAlc.glm)
 
 
-####test w/ smoothing and natrual spline
+####test w/ smoothing and natural spline
 #begin with smoothing
 smooth.gam <- gam(caroBlood~s(alcohol,4), data = prostate[train,])
 
@@ -606,7 +628,69 @@ anova( glm.mod,smooth.gam, natural.gam, test = "Chisq")
 #variance and the easiest interpretability 
 ######################################
 
+################ Question 5 - 2023####################
+library(gam)
+gam.m5 <- gam(Cscore ~ s(lcavol, 4) + s(lweight, 4) +s(lcp, 4)+ s(lpsa, 5), data = Wage)
+head(prostate)
 
+head(prostateNumeric)
+##GAM
+head(prostate)
+set.seed(1)
+#maybe we should only test the variables found to be
+#strongest in predicting for the linear model
+nD <- prostate[,c("lcavol", "lweight", "age", "lbph","svi",
+                 "lcp","lpsa")]
+names(nD)
+
+library(gam)
+#now plot a gam with the features found in best subset selection
+plot(gam(Cscore~s(lcavol,4) + 
+           s(lweight, 4)  + s(svi,2) + s(lcp,4) + s(lpsa,4),
+         k =10,data=nD[train,]), se = T, col = 'blue')
+
+
+#from the plots alone it seems like age, weight_over_height_sq, fiber, caro_diet,
+#and retinol_blood may have non linear relations
+head(Wage)
+gam.mod <- gam(caro_blood~s(age,4) + genderfemale + smoking_former + smoking_current_smoker +
+                 s(weight_over_height_sq, 4) + vita_suppl_yes_not_often + vita_suppl_no +
+                 s(fiber,4) + s(caro_diet,4) + s(retinol_blood,4),
+               k =10,data=nD[train,])
+
+#run a summary to confirm
+summary(gam.mod)
+#from the nonparametric effects it seems like only fiber
+#and caro_diet follow a non linear model
+
+
+gam.mod <- gam(caro_blood~age + genderfemale + smoking_former + smoking_current_smoker +
+                 weight_over_height_sq + vita_suppl_yes_not_often + vita_suppl_no +
+                 s(fiber,4) + s(caro_diet,4) + retinol_blood,
+               k =10,data=nD[train,])
+
+summary(gam.mod)
+#from the two parametric summaries we see that age, smoking_former and 
+#vita_suppl_yes_not_often were no significant in either approach
+#so we can remove these to reduce the complexity of the model
+
+gam.mod <- gam(caro_blood~genderfemale +  smoking_current_smoker +
+                 weight_over_height_sq + vita_suppl_no +
+                 s(fiber,4) + s(caro_diet,4) + retinol_blood,
+               k =10,data=nD[train,])
+#verify that removing the variable did not change the 
+#significance of the others 
+summary(gam.mod)
+#retional blood may not be significant but we leave it in there
+#just in case
+
+#now test to so if a natural spline may be a better chouse
+gam.ns.mod <- gam(caro_blood~genderfemale +  smoking_current_smoker +
+                    weight_over_height_sq + vita_suppl_no +
+                    ns(fiber,4) + ns(caro_diet,4) + retinol_blood,
+                  k =10,data=nD[train,])
+
+summary(gam.ns.mod)
 
 
 

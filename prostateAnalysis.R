@@ -1,6 +1,4 @@
-#Mariia KIM   r0831824
-#Soniya LAMA   r0715145
-#Statistical Methods for Bioinformatics
+#Statistical Methods for Bioinformatics assignment
 
 #load packages
 library("Hmisc")
